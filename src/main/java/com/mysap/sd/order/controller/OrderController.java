@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,12 +27,14 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    @CrossOrigin(origins = "*") // or specific origin
     @PostMapping
     public ResponseEntity<OrderHeader> createOrder(@RequestBody OrderHeader order) {
         OrderHeader created = orderService.createOrder(order);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @CrossOrigin(origins = "*") // or specific origin
     @GetMapping("/{id}")
     public ResponseEntity<OrderHeader> getOrder(@PathVariable Long id) {
         return orderService.getOrderById(id)
@@ -39,6 +42,7 @@ public class OrderController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CrossOrigin(origins = "*") // or specific origin
     @GetMapping
     public List<OrderHeader> getAllOrders() {
         return orderService.getAllOrders();

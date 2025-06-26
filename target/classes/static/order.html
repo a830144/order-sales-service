@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Order Management</title>
+  <style>
+    .section { display: none; }
+    .active { display: block; }
+    .nav-buttons { margin-bottom: 20px; }
+    .nav-buttons button { margin-right: 10px; }
+    table { border-collapse: collapse; width: 100%; }
+    table, th, td { border: 1px solid black; }
+    th, td { padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h2>Order Management</h2>
+  <div class="nav-buttons">
+    <button onclick="switchView('view')">📦 View Orders</button>
+    <button onclick="switchView('add')">➕ Add Order</button>
+  </div>
+
+  <!-- View Orders -->
+  <div id="viewSection" class="section active">
+    <h3>Existing Orders</h3>
+    <table id="orderList">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="orderListBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Add Order -->
+  <div id="addSection" class="section">
+    <h3>Select Quotation to Create Order</h3>
+    <select id="quotationSelect">
+      <option value="">-- Choose Quotation --</option>
+    </select>
+    <div id="quotationDetails"></div>
+    <button onclick="createOrder()">🚀 Create Order</button>
+  </div>
+
+  <script>
+    function switchView(mode) {
+      document.getElementById('viewSection').classList.remove('active');
+      document.getElementById('addSection').classList.remove('active');
+      document.getElementById(mode + 'Section').classList.add('active');
+      if (mode === 'view') loadOrders();
+      if (mode === 'add') loadQuotations();
+    }
+
+    async function loadOrders() {
+      const res = await fetch('http://localhost:8084/orders');
+      const list = await res.json();
+      const body = document.getElementById('orderListBody');
+      body.innerHTML = '';
+      list.forEach(o => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${o.id}</td>
+          <td>${o.customerId}</td>
+          <td>${o.orderDate}</td>
+          <td>${o.status}</td>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    async function loadQuotations() {
+      const res = await fetch('http://localhost:8083/quotations');
+      const list = await res.json();
+      const select = document.getElementById('quotationSelect');
+      select.innerHTML = `<option value="">-- Choose Quotation --</option>`;
+      list.forEach(q => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `#${q.id} - ${q.customerId} (${q.status})`;
+        select.appendChild(opt);
+      });
+
+      select.onchange = async () => {
+        const id = select.value;
+        if (!id) return;
+        const q = await (await fetch(`http://localhost:8083/quotations/${id}`)).json();
+        const html = `
+          <p><strong>Customer:</strong> ${q.customerId}</p>
+          <p><strong>Date:</strong> ${q.quoteDate}</p>
+          <p><strong>Status:</strong> ${q.status}</p>
+        `;
+        document.getElementById('quotationDetails').innerHTML = html;
+      };
+    }
+
+    async function createOrder() {
+      const quoteId = document.getElementById('quotationSelect').value;
+      if (!quoteId) {
+        alert("Please select a quotation.");
+        return;
+      }
+
+      const quote = await (await fetch(`http://localhost:8083/quotations/${quoteId}`)).json();
+      const res = await fetch(`http://localhost:8084/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotationId: quote.id,
+          customerId: quote.customerId,
+          orderDate: new Date().toISOString().split('T')[0],
+          status: 'NEW'
+        })
+      });
+
+      if (res.ok) {
+        alert("Order created!");
+        switchView('view');
+      } else {
+        alert("Failed to create order.");
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadOrders();
+    });
+  </script>
+</body>
+</html>

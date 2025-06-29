@@ -105,23 +105,31 @@
       }
 
       const quote = await (await fetch(`http://localhost:8083/quotations/${quoteId}`)).json();
-      const res = await fetch(`http://localhost:8084/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quotationId: quote.id,
-          customerId: quote.customerId,
-          orderDate: new Date().toISOString().split('T')[0],
-          status: 'NEW'
-        })
-      });
+      
+      try {
+    	  const res = await fetch(`http://localhost:8084/orders`, {
+    	    method: 'POST',
+    	    headers: { 'Content-Type': 'application/json' },
+    	    body: JSON.stringify({
+    	      quotationId: quote.id,
+    	      customerId: quote.customerId,
+    	      orderDate: new Date().toISOString().split('T')[0],
+    	      status: 'NEW'
+    	    })
+    	  });
 
-      if (res.ok) {
-        alert("Order created!");
-        switchView('view');
-      } else {
-        alert("Failed to create order.");
-      }
+    	  if (res.ok) {
+    	    alert("Order created!");
+    	    switchView('view');
+    	  } else {
+    	    const errorText = await res.text();
+    	    console.error("Backend error:", errorText);
+    	    alert(`Failed to create order: ${res.status} ${res.statusText}\n${errorText}`);
+    	  }
+    	} catch (err) {
+    	  console.error("Network or JS error:", err);
+    	  alert("Error occurred while sending order request.");
+    	}
     }
 
     window.addEventListener('DOMContentLoaded', () => {
